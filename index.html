@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="th" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisper Works - Interactive Datasheet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Serene Tech -->
+    <!-- Application Structure Plan: A single-page narrative dashboard. The user scrolls down through a story that begins with the core problem (the 97% gap), introduces the solution (Whisper Works), explains the technology interactively, showcases the "wow" factor, and concludes with the impact and future vision. This structure is chosen to create an emotional and logical connection with the user, making the data more memorable and impactful than a traditional report layout. -->
+    <!-- Visualization & Content Choices: 
+        - Problem Stats -> Goal: Compare -> Viz: Bar Chart (Chart.js) -> Interaction: Hover tooltips -> Justification: Dramatically visualizes the huge gap between the total population and the employed.
+        - Architecture -> Goal: Organize -> Viz: HTML/CSS Diagram -> Interaction: Click to reveal text -> Justification: Simplifies a complex technical concept into an easy-to-understand, interactive flow, avoiding forbidden SVG/Mermaid.
+        - NLP Feature -> Goal: Demonstrate -> Viz: Simulated UI -> Interaction: Static display -> Justification: Clearly shows the unique value proposition (summarization) in a visually engaging format.
+        - Impact Goal -> Goal: Inform -> Viz: Animated Number Counter -> Interaction: Animates on scroll -> Justification: Creates a dynamic and impactful presentation of the key project goal.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        .tech-icon {
+            transition: transform 0.3s ease;
+        }
+        .tech-icon:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">Whisper Works</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#problem" class="text-gray-600 hover:text-blue-600">ปัญหา</a>
+                <a href="#solution" class="text-gray-600 hover:text-blue-600">นวัตกรรม</a>
+                <a href="#tech" class="text-gray-600 hover:text-blue-600">เทคโนโลยี</a>
+                <a href="#impact" class="text-gray-600 hover:text-blue-600">ผลกระทบ</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+
+        <section id="hero" class="text-center py-20">
+            <h2 class="text-5xl md:text-7xl font-extrabold text-blue-600">97.62%</h2>
+            <p class="mt-4 text-2xl md:text-3xl font-semibold text-gray-700">คือสัดส่วนศักยภาพที่ถูกมองข้าม</p>
+            <p class="mt-2 text-lg text-gray-500 max-w-2xl mx-auto">โครงการนี้ถือกำเนิดขึ้นเพื่อทลายกำแพงการสื่อสาร และปลดปล่อยศักยภาพทางเศรษฐกิจของผู้บกพร่องทางการได้ยินในประเทศไทย</p>
+        </section>
+
+        <section id="problem" class="py-16">
+            <div class="text-center mb-12">
+                <h3 class="text-4xl font-bold">ความจริงที่น่าตกใจ: ช่องว่างแห่งโอกาส</h3>
+                <p class="mt-2 text-gray-600">ข้อมูลชี้ชัดว่าปัญหาไม่ใช่ "การขาดทักษะ" แต่คือ "การขาดโอกาส"</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="stat-card p-6">
+                    <h4 class="font-bold text-xl mb-4">ประชากร vs. การจ้างงาน</h4>
+                    <div class="chart-container">
+                        <canvas id="employmentChart"></canvas>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div class="stat-card p-6">
+                        <p class="text-5xl font-bold text-blue-600">11,064</p>
+                        <p class="font-semibold mt-2">คือจำนวนผู้มีการศึกษาระดับปริญญาตรี</p>
+                        <p class="text-gray-500">ซึ่งมากกว่าจำนวนผู้มีงานทำทั้งหมด (10,479 คน)</p>
+                    </div>
+                     <div class="stat-card p-6 bg-blue-50">
+                        <p class="font-semibold">"ผมมีความสามารถ แต่ไม่มีใครให้โอกาสได้พิสูจน์"</p>
+                        <p class="text-right text-gray-500 mt-2">- เสียงสะท้อนจาก 'คุณเอ', Persona ผู้มีความฝัน</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="solution" class="py-16 bg-white rounded-2xl shadow-inner">
+            <div class="text-center mb-12">
+                <h3 class="text-4xl font-bold">นวัตกรรมของเรา: Whisper Works</h3>
+                <p class="mt-2 text-gray-600">ไม่ใช่แค่แอป แต่คือแพลตฟอร์มเสริมศักยภาพทางอาชีพด้วย AI</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="text-center p-6">
+                    <h4 class="text-2xl font-bold mb-4">"ไม่ใช่แค่ 'แปล' แต่ 'เข้าใจ'"</h4>
+                    <div class="bg-gray-800 rounded-xl p-6 shadow-lg text-left font-mono text-sm text-white">
+                        <p class="text-gray-400">&gt; Input (เสียงพูดลูกค้า):</p>
+                        <p class="mt-1">"น้องครับ พี่เอาคาปูชิโน่ร้อนแก้วใหญ่ หวานน้อย เพิ่มวิปครีม"</p>
+                        <hr class="my-4 border-gray-600">
+                        <p class="text-gray-400">&gt; Whisper Works Output:</p>
+                        <p class="mt-1">
+                            <span class="bg-green-500 text-gray-900 px-2 py-1 rounded">คาปูชิโน่ร้อน</span>
+                            <span class="bg-green-500 text-gray-900 px-2 py-1 rounded">แก้วใหญ่</span>
+                            <span class="bg-green-500 text-gray-900 px-2 py-1 rounded">หวานน้อย</span>
+                            <span class="bg-green-500 text-gray-900 px-2 py-1 rounded">เพิ่มวิปครีม</span>
+                        </p>
+                    </div>
+                     <p class="mt-4 text-gray-600">ใช้ AI Natural Language Processing (NLP) สกัดเฉพาะคีย์เวิร์ดสำคัญ ช่วยลดภาระทางสมองและเพิ่มความเร็วในการบริการ</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-start space-x-4">
+                        <div class="bg-blue-100 text-blue-600 p-3 rounded-full">➔</div>
+                        <div>
+                            <h5 class="font-bold">ทำงานเชิงรุก (Proactive)</h5>
+                            <p class="text-gray-600">ตรวจจับเสียงพูดอัตโนมัติผ่าน Smartwatch ผู้ใช้ไม่ต้องกดเปิดแอปเอง</p>
+                        </div>
+                    </div>
+                     <div class="flex items-start space-x-4">
+                        <div class="bg-blue-100 text-blue-600 p-3 rounded-full">➔</div>
+                        <div>
+                            <h5 class="font-bold">สื่อสารสองทาง (Two-Way)</h5>
+                            <p class="text-gray-600">รองรับ Text-to-Speech ช่วยให้ผู้ใช้สามารถพิมพ์เพื่อตอบกลับลูกค้าด้วยเสียงพูดที่เป็นธรรมชาติ</p>
+                        </div>
+                    </div>
+                     <div class="flex items-start space-x-4">
+                        <div class="bg-blue-100 text-blue-600 p-3 rounded-full">➔</div>
+                        <div>
+                            <h5 class="font-bold">โมเดลธุรกิจยั่งยืน (Sustainable)</h5>
+                            <p class="text-gray-600">เป็น B2B SaaS (Software-as-a-Service) ขายบริการให้กับองค์กร สร้างรายได้ที่มั่นคงเพื่อการพัฒนาต่อเนื่อง</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tech" class="py-16">
+            <div class="text-center mb-12">
+                <h3 class="text-4xl font-bold">สถาปัตยกรรม: The Cloud Architect</h3>
+                <p class="mt-2 text-gray-600">สร้างขึ้นอย่างภาคภูมิใจบนเทคโนโลยีของ AIS</p>
+            </div>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-8 text-center">
+                <div class="tech-icon p-4">
+                    <div class="text-6xl">⌚</div>
+                    <h5 class="font-bold mt-2">Sensor</h5>
+                    <p class="text-sm text-gray-500">Wear OS ตรวจจับเสียง</p>
+                </div>
+                <div class="text-2xl text-gray-400 font-sans">→</div>
+                <div class="tech-icon p-4">
+                     <div class="text-6xl">📱</div>
+                    <h5 class="font-bold mt-2">Bridge</h5>
+                    <p class="text-sm text-gray-500">Android ส่งข้อมูล</p>
+                </div>
+                <div class="text-2xl text-gray-400 font-sans">→</div>
+                <div class="tech-icon p-4">
+                    <div class="text-6xl">📡</div>
+                    <h5 class="font-bold mt-2">AIS 5G</h5>
+                    <p class="text-sm text-gray-500">เครือข่ายความเร็วสูง</p>
+                </div>
+                 <div class="text-2xl text-gray-400 font-sans">→</div>
+                <div class="tech-icon p-4">
+                     <div class="text-6xl">☁️</div>
+                    <h5 class="font-bold mt-2">AIS Edge Compute</h5>
+                    <p class="text-sm text-gray-500">สมอง AI ประมวลผล</p>
+                </div>
+            </div>
+             <p class="text-center mt-8 text-gray-600 max-w-3xl mx-auto">สถาปัตยกรรมนี้ใช้ **AIS 5G** เพื่อความเร็วและความหน่วงต่ำ และ **AIS Edge Compute** เพื่อการประมวลผลที่ปลอดภัยและเป็นส่วนตัวภายใต้กฎหมาย PDPA ของไทย 100%</p>
+        </section>
+
+        <section id="impact" class="py-16 bg-gray-800 text-white rounded-2xl">
+            <div class="text-center mb-12">
+                <h3 class="text-4xl font-bold">ผลกระทบและอนาคต</h3>
+                <p class="mt-2 text-gray-400">เราไม่ได้แค่สร้างแอป แต่เรากำลังสร้างอนาคต</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="text-center">
+                    <p class="text-7xl font-extrabold text-green-400" id="jobsCounter">0</p>
+                    <p class="text-2xl font-semibold mt-2">อาชีพใหม่</p>
+                    <p class="text-gray-400">คือเป้าหมายที่เราจะสร้างภายใน 3 ปี</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-xl mb-4">แผนการขยายผล (Roadmap)</h4>
+                    <ol class="relative border-l border-gray-600">                  
+                        <li class="mb-10 ml-6">            
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full -left-3 ring-8 ring-gray-800">V1</span>
+                            <h5 class="font-semibold">ร้านอาหารและคาเฟ่</h5>
+                            <p class="text-sm text-gray-400">พิสูจน์แนวคิดและสร้าง Case Study ที่วัดผลได้</p>
+                        </li>
+                        <li class="mb-10 ml-6">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full -left-3 ring-8 ring-gray-800">V2</span>
+                            <h5 class="font-semibold">โรงแรมและค้าปลีก</h5>
+                            <p class="text-sm text-gray-400">ขยายสู่ตลาดบริการที่ใหญ่ขึ้น</p>
+                        </li>
+                        <li class="ml-6">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full -left-3 ring-8 ring-gray-800">V3</span>
+                            <h5 class="font-semibold">API Platform</h5>
+                            <p class="text-sm text-gray-400">เปิดเป็นแพลตฟอร์มให้องค์กรต่างๆ นำไปต่อยอด</p>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white mt-16 border-t">
+        <div class="container mx-auto px-6 py-4 text-center text-gray-500">
+            <p>&copy; 2025 Team Synapse - โครงการ Whisper Works</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const projectData = {
+                stats: {
+                    totalPopulation: 439445,
+                    employed: 10479,
+                },
+                impact: {
+                    jobsGoal: 1000
+                }
+            };
+
+            const ctx = document.getElementById('employmentChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['ประชากรทั้งหมด', 'ผู้มีงานทำ'],
+                    datasets: [{
+                        label: 'จำนวนคน',
+                        data: [projectData.stats.totalPopulation, projectData.stats.employed],
+                        backgroundColor: [
+                            'rgba(107, 114, 128, 0.2)',
+                            'rgba(59, 130, 246, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(107, 114, 128, 1)',
+                            'rgba(59, 130, 246, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('th-TH');
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toLocaleString('th-TH') + ' คน';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const jobsCounter = document.getElementById('jobsCounter');
+            const target = projectData.impact.jobsGoal;
+            let animated = false;
+
+            const animateCounter = (element, finalValue) => {
+                let start = 0;
+                const duration = 2000;
+                const stepTime = Math.abs(Math.floor(duration / finalValue));
+                
+                const timer = setInterval(() => {
+                    start += 1;
+                    element.textContent = start.toLocaleString('th-TH');
+                    if (start === finalValue) {
+                        clearInterval(timer);
+                    }
+                }, stepTime);
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !animated) {
+                        animateCounter(jobsCounter, target);
+                        animated = true;
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            if (jobsCounter) {
+                observer.observe(jobsCounter);
+            }
+            
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
