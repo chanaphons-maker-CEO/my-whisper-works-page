@@ -1,197 +1,156 @@
-// ดึง Element ที่จำเป็นจาก HTML
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+// --- ดึง Element จาก HTML ---
 const scoreElement = document.getElementById('score');
+const timerBar = document.getElementById('timer-bar');
+const problemTextElement = document.getElementById('problem-text');
+const formulaHintElement = document.getElementById('formula-hint');
+const answerInput = document.getElementById('answer-input');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreElement = document.getElementById('finalScore');
+const correctAnswerElement = document.getElementById('correct-answer');
 const restartButton = document.getElementById('restartButton');
 
-// ตั้งค่าขนาด Canvas
-canvas.width = 800;
-canvas.height = 400;
-
 // --- ตัวแปรหลักของเกม ---
-let player;
-let gravity;
-let obstacles;
-let gameSpeed;
 let score;
+let timeLeft;
+let maxTime = 15; // เวลา 15 วินาทีต่อข้อ
+let timerInterval;
+let currentProblem;
 let isGameOver;
-let animationFrameId;
 
-// --- Object ของผู้เล่น ---
-const playerProps = {
-    x: 100,
-    y: canvas.height / 2,
-    width: 30,
-    height: 30,
-    velocityY: 0,
-    color: '#00ffff'
-};
+// --- คลังโจทย์ฟิสิกส์ (หัวใจของเกม) ---
+const problemTemplates = [
+    {
+        // โจทย์: หา s จาก u, t, a
+        // สูตร: s = ut + 0.5 * a * t^2
+        generate: () => {
+            const u = Math.floor(Math.random() * 10) + 1; // 1-10
+            const t = Math.floor(Math.random() * 5) + 2;  // 2-6
+            const a = Math.floor(Math.random() * 5) + 1;  // 1-5
+            const s = u * t + 0.5 * a * t * t;
+            return {
+                text: `วัตถุมีความเร็วต้น (u) = ${u} m/s, ความเร่ง (a) = ${a} m/s², เคลื่อนที่เป็นเวลา (t) = ${t} s. จงหาระยะทาง (s) ที่เคลื่อนที่ได้ (m)?`,
+                formula: 's = ut + ½at²',
+                answer: s
+            };
+        }
+    },
+    {
+        // โจทย์: หา v จาก u, a, t
+        // สูตร: v = u + at
+        generate: () => {
+            const u = Math.floor(Math.random() * 20); // 0-19
+            const a = Math.floor(Math.random() * 10) + 1; // 1-10
+            const t = Math.floor(Math.random() * 10) + 1; // 1-10
+            const v = u + a * t;
+            return {
+                text: `รถยนต์เริ่มเคลื่อนที่ด้วยความเร็ว (u) = ${u} m/s และมีความเร่งคงที่ (a) = ${a} m/s². เมื่อเวลาผ่านไป (t) = ${t} s, รถจะมีความเร็วปลาย (v) เท่าใด (m/s)?`,
+                formula: 'v = u + at',
+                answer: v
+            };
+        }
+    },
+    {
+        // โจทย์: หา F จาก m, a
+        // สูตร: F = ma
+        generate: () => {
+            const m = Math.floor(Math.random() * 50) + 10; // 10-59
+            const a = Math.floor(Math.random() * 10) + 2;  // 2-11
+            const F = m * a;
+            return {
+                text: `ถ้าต้องการทำให้วัตถุมวล (m) = ${m} kg เคลื่อนที่ด้วยความเร่ง (a) = ${a} m/s², จะต้องใช้แรง (F) กี่นิวตัน (N)?`,
+                formula: 'F = ma',
+                answer: F
+            };
+        }
+    }
+];
 
 // --- ฟังก์ชันเริ่มต้น/รีเซ็ตเกม ---
-function setup() {
-    player = { ...playerProps };
-    gravity = 0.5; // แรงโน้มถ่วงเริ่มต้น (ดึงลง)
-    obstacles = [];
-    gameSpeed = 4;
+function startGame() {
     score = 0;
     isGameOver = false;
-
-    // ซ่อนหน้าจอ Game Over และอัปเดตคะแนน
+    scoreElement.textContent = score;
     gameOverScreen.classList.add('hidden');
-    scoreElement.textContent = 0;
-
-    // สร้างสิ่งกีดขวางเริ่มต้น
-    spawnObstacle();
-
-    // เริ่ม Game Loop
-    if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-    }
-    gameLoop();
-}
-
-// --- ฟังก์ชันสร้างสิ่งกีดขวาง ---
-function spawnObstacle() {
-    const minHeight = 40;
-    const maxHeight = canvas.height * 0.4;
-    const height = Math.random() * (maxHeight - minHeight) + minHeight;
-    const width = 40;
+    answerInput.disabled = false;
+    answerInput.focus();
     
-    // สุ่มว่าจะให้สิ่งกีดขวางอยู่บนพื้นหรือเพดาน
-    const onGround = Math.random() > 0.5;
-
-    obstacles.push({
-        x: canvas.width,
-        y: onGround ? canvas.height - height : 0,
-        width: width,
-        height: height,
-        color: '#ff4d4d'
-    });
+    nextProblem();
 }
 
-// --- การจัดการฟิสิกส์และการเคลื่อนที่ของผู้เล่น ---
-function updatePlayer() {
-    // ใช้สูตรฟิสิกส์: v = u + at (ในที่นี้คือ velocityY += gravity)
-    player.velocityY += gravity;
-    player.y += player.velocityY;
+// --- ฟังก์ชันสร้างและแสดงโจทย์ใหม่ ---
+function nextProblem() {
+    // สุ่มโจทย์จากคลัง
+    const template = problemTemplates[Math.floor(Math.random() * problemTemplates.length)];
+    currentProblem = template.generate();
 
-    // ตรวจสอบการชนขอบบนและล่าง (พื้นและเพดาน)
-    // ถ้าชนพื้น
-    if (player.y + player.height > canvas.height) {
-        player.y = canvas.height - player.height;
-        player.velocityY = 0;
-    }
-    // ถ้าชนเพดาน
-    if (player.y < 0) {
-        player.y = 0;
-        player.velocityY = 0;
-    }
+    // แสดงโจทย์และคำใบ้
+    problemTextElement.textContent = currentProblem.text;
+    formulaHintElement.textContent = `คำใบ้: ${currentProblem.formula}`;
+    
+    // เคลียร์ช่องคำตอบและตั้งเวลาใหม่
+    answerInput.value = '';
+    resetTimer();
 }
 
-// --- การจัดการสิ่งกีดขวาง ---
-function updateObstacles() {
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        const obs = obstacles[i];
-        obs.x -= gameSpeed;
+// --- ฟังก์ชันจัดการเวลา ---
+function resetTimer() {
+    clearInterval(timerInterval);
+    timeLeft = maxTime;
+    timerBar.style.transition = 'none'; // ปิด transition ชั่วคราว
+    timerBar.style.width = '100%';
+    
+    // หน่วงเวลาเล็กน้อยเพื่อให้ browser render ก่อนเริ่ม transition ใหม่
+    setTimeout(() => {
+        timerBar.style.transition = `width ${maxTime}s linear`;
+        timerBar.style.width = '0%';
+    }, 50);
 
-        // ถ้าสิ่งกีดขวางพ้นจอไปทางซ้าย
-        if (obs.x + obs.width < 0) {
-            obstacles.splice(i, 1); // ลบออกจาก Array
-            score++;
-            scoreElement.textContent = score;
-
-            // เพิ่มความเร็วเกมเล็กน้อยเพื่อความท้าทาย
-            gameSpeed += 0.1;
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft < 0) {
+            clearInterval(timerInterval);
+            endGame();
         }
-    }
+    }, 1000);
+}
 
-    // สร้างสิ่งกีดขวางใหม่เมื่ออันล่าสุดเคลื่อนที่ไปได้ระยะหนึ่งแล้ว
-    if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 300) {
-        spawnObstacle();
+// --- ฟังก์ชันจบเกม ---
+function endGame() {
+    isGameOver = true;
+    answerInput.disabled = true;
+    clearInterval(timerInterval);
+
+    finalScoreElement.textContent = score;
+    correctAnswerElement.textContent = currentProblem.answer;
+    gameOverScreen.classList.remove('hidden');
+}
+
+// --- ฟังก์ชันตรวจสอบคำตอบ ---
+function checkAnswer() {
+    if (isGameOver) return;
+
+    const userAnswer = parseFloat(answerInput.value);
+    
+    // ใช้ Math.abs เพื่อจัดการความคลาดเคลื่อนของทศนิยม
+    if (Math.abs(userAnswer - currentProblem.answer) < 0.01) {
+        // ตอบถูก
+        score++;
+        scoreElement.textContent = score;
+        nextProblem();
+    } else {
+        // ตอบผิด
+        endGame();
     }
 }
 
-// --- การตรวจจับการชนกับสิ่งกีดขวาง ---
-function checkCollision() {
-    for (const obs of obstacles) {
-        if (
-            player.x < obs.x + obs.width &&
-            player.x + player.width > obs.x &&
-            player.y < obs.y + obs.height &&
-            player.y + player.height > obs.y
-        ) {
-            isGameOver = true;
-        }
-    }
-}
-
-// --- ฟังก์ชันการวาดภาพทั้งหมดลงบน Canvas ---
-function draw() {
-    // เคลียร์ Canvas ให้เป็นสีพื้นหลัง
-    ctx.fillStyle = '#0f0f1a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // วาดผู้เล่น
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-    // เพิ่มเงาให้ผู้เล่น
-    ctx.shadowColor = player.color;
-    ctx.shadowBlur = 10;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-    ctx.shadowBlur = 0;
-
-
-    // วาดสิ่งกีดขวาง
-    for (const obs of obstacles) {
-        ctx.fillStyle = obs.color;
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        // เพิ่มเงาให้สิ่งกีดขวาง
-        ctx.shadowColor = obs.color;
-        ctx.shadowBlur = 15;
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        ctx.shadowBlur = 0;
-    }
-}
-
-// --- ฟังก์ชัน Game Loop หลัก ---
-function gameLoop() {
-    if (isGameOver) {
-        // ถ้าเกมจบ, แสดงหน้าจอ Game Over
-        finalScoreElement.textContent = score;
-        gameOverScreen.classList.remove('hidden');
-        return;
-    }
-
-    // อัปเดตสถานะของเกม
-    updatePlayer();
-    updateObstacles();
-    checkCollision();
-
-    // วาดภาพใหม่
-    draw();
-
-    // เรียกตัวเองซ้ำใน Frame ถัดไปเพื่อสร้าง Animation
-    animationFrameId = requestAnimationFrame(gameLoop);
-}
-
-// --- การควบคุม: สลับแรงโน้มถ่วง ---
-function switchGravity() {
-    if (!isGameOver) {
-        gravity *= -1; // สลับขั้วแรงโน้มถ่วง
-    }
-}
-
-// Event Listeners
-window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') {
-        switchGravity();
+// --- Event Listeners ---
+answerInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        checkAnswer();
     }
 });
 
-canvas.addEventListener('mousedown', switchGravity);
-restartButton.addEventListener('click', setup);
+restartButton.addEventListener('click', startGame);
 
 // --- เริ่มเกมครั้งแรก ---
-setup();
+startGame();
