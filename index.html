@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculus Comet</title>
+    <title>Gravity Runner</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
-        <h1>Calculus Comet</h1>
+        <h1>Gravity Runner</h1>
         <canvas id="gameCanvas"></canvas>
-        <div id="ui-container">
-            <p>Score: <span id="score">0</span></p>
+        <div id="scoreBoard">คะแนน: <span id="score">0</span></div>
+        <div id="gameOverScreen" class="hidden">
+            <h2>GAME OVER</h2>
+            <p>คะแนนสุดท้าย: <span id="finalScore">0</span></p>
+            <button id="restartButton">เริ่มใหม่อีกครั้ง</button>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
