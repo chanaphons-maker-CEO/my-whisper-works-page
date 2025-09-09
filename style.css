@@ -1,0 +1,51 @@
+/* ตั้งค่าพื้นฐานและฟอนต์ */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0c0c1e; /* สีพื้นหลังอวกาศมืด */
+    color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* คอนเทนเนอร์หลักของเกม */
+.game-container {
+    text-align: center;
+    border: 2px solid #6a0dad; /* ขอบสีม่วงนีออน */
+    box-shadow: 0 0 20px #6a0dad, 0 0 30px #8a2be2 inset;
+    border-radius: 15px;
+    padding: 20px;
+    background-color: rgba(12, 12, 30, 0.8);
+}
+
+h1 {
+    color: #e0e0ff;
+    text-shadow: 0 0 10px #fff, 0 0 20px #6a0dad;
+    margin-top: 0;
+}
+
+/* Canvas ของเกม */
+canvas {
+    background-color: #000;
+    background-image: 
+        radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+        radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+        radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px),
+        radial-gradient(rgba(255,255,255,.4), rgba(255,255,255,.1) 2px, transparent 30px);
+    background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px; 
+    background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+    border: 1px solid #4a0a8d;
+    border-radius: 10px;
+    cursor: crosshair; /* เปลี่ยนเมาส์เป็นเป้าเล็ง */
+}
+
+/* ส่วนแสดงผลคะแนน */
+#ui-container {
+    margin-top: 15px;
+    font-size: 1.5em;
+    color: #c0c0ff;
+    text-shadow: 0 0 5px #6a0dad;
+}
