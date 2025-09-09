@@ -1,196 +1,197 @@
-// === การตั้งค่าเริ่มต้น ===
+// ดึง Element ที่จำเป็นจาก HTML
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
+const scoreElement = document.getElementById('score');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const finalScoreElement = document.getElementById('finalScore');
+const restartButton = document.getElementById('restartButton');
 
-// ขนาดของ Canvas
+// ตั้งค่าขนาด Canvas
 canvas.width = 800;
-canvas.height = 500;
+canvas.height = 400;
 
-let score = 0;
-let gameFrame = 0; // ตัวนับเฟรมของเกม
+// --- ตัวแปรหลักของเกม ---
+let player;
+let gravity;
+let obstacles;
+let gameSpeed;
+let score;
+let isGameOver;
+let animationFrameId;
 
-// === วัตถุในเกม ===
-
-// 1. ยานอวกาศของผู้เล่น (Player's Comet)
-const player = {
-    x: 0,
-    y: 0,
-    radius: 15,
-    speed: 1.5 // ความเร็วในการเคลื่อนที่ไปตามแกน x
+// --- Object ของผู้เล่น ---
+const playerProps = {
+    x: 100,
+    y: canvas.height / 2,
+    width: 30,
+    height: 30,
+    velocityY: 0,
+    color: '#00ffff'
 };
 
-// 2. กระสุนเลเซอร์
-const bullets = [];
-class Bullet {
-    constructor(x, y, velocityX, velocityY) {
-        this.x = x;
-        this.y = y;
-        this.radius = 5;
-        this.velocityX = velocityX;
-        this.velocityY = velocityY;
-        this.speed = 10;
+// --- ฟังก์ชันเริ่มต้น/รีเซ็ตเกม ---
+function setup() {
+    player = { ...playerProps };
+    gravity = 0.5; // แรงโน้มถ่วงเริ่มต้น (ดึงลง)
+    obstacles = [];
+    gameSpeed = 4;
+    score = 0;
+    isGameOver = false;
+
+    // ซ่อนหน้าจอ Game Over และอัปเดตคะแนน
+    gameOverScreen.classList.add('hidden');
+    scoreElement.textContent = 0;
+
+    // สร้างสิ่งกีดขวางเริ่มต้น
+    spawnObstacle();
+
+    // เริ่ม Game Loop
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
     }
-    update() {
-        this.x += this.velocityX * this.speed;
-        this.y += this.velocityY * this.speed;
-    }
-    draw() {
-        ctx.fillStyle = '#ff00ff'; // สีชมพูนีออน
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#ff69b4';
-    }
+    gameLoop();
 }
 
-// 3. อุกกาบาต (Enemies)
-const enemies = [];
-class Enemy {
-    constructor() {
-        this.radius = Math.random() * 20 + 15; // ขนาดสุ่ม
-        this.x = canvas.width + this.radius;
-        this.y = Math.random() * canvas.height;
-        this.speed = Math.random() * 2 + 1;
-    }
-    update() {
-        this.x -= this.speed;
-    }
-    draw() {
-        ctx.fillStyle = '#a9a9a9'; // สีเทา
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#696969';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-    }
-}
-
-// === ส่วนของแคลคูลัส ===
-
-// ฟังก์ชันเส้นทางของยาน (เราใช้ sin(x) เพื่อให้ดูน่าสนใจ)
-function pathFunction(x) {
-    // แปลง x ให้อยู่ใน scale ที่เหมาะสม และบวก canvas.height / 2 เพื่อให้อยู่กลางจอ
-    return Math.sin(x / 100) * 100 + canvas.height / 2;
-}
-
-// อนุพันธ์ของฟังก์ชันเส้นทาง (Derivative)
-// d/dx(sin(x/100)*100) = cos(x/100) * (1/100) * 100 = cos(x/100)
-function derivativeFunction(x) {
-    return Math.cos(x / 100);
-}
-
-// === ฟังก์ชันจัดการเกม ===
-
-// ฟังก์ชันสร้างศัตรู
-function handleEnemies() {
-    if (gameFrame % 90 === 0) { // สร้างศัตรูทุกๆ 90 เฟรม
-        enemies.push(new Enemy());
-    }
-    for (let i = 0; i < enemies.length; i++) {
-        enemies[i].update();
-        enemies[i].draw();
-        // ลบศัตรูที่ออกจากหน้าจอ
-        if (enemies[i].x < 0 - enemies[i].radius) {
-            enemies.splice(i, 1);
-            i--;
-        }
-    }
-}
-
-// ฟังก์ชันจัดการกระสุน
-function handleBullets() {
-    for (let i = 0; i < bullets.length; i++) {
-        bullets[i].update();
-        bullets[i].draw();
-        // ลบกระสุนที่ออกจากหน้าจอ
-        if (bullets[i].x < 0 || bullets[i].x > canvas.width || bullets[i].y < 0 || bullets[i].y > canvas.height) {
-            bullets.splice(i, 1);
-            i--;
-        }
-    }
-}
-
-// ฟังก์ชันตรวจสอบการชนกัน
-function handleCollisions() {
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        for (let j = bullets.length - 1; j >= 0; j--) {
-            if (enemies[i] && bullets[j]) {
-                const dx = enemies[i].x - bullets[j].x;
-                const dy = enemies[i].y - bullets[j].y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < enemies[i].radius + bullets[j].radius) {
-                    // ชนกัน!
-                    score += 10;
-                    scoreEl.textContent = score;
-                    enemies.splice(i, 1);
-                    bullets.splice(j, 1);
-                }
-            }
-        }
-    }
-}
-
-
-// === การควบคุม ===
-canvas.addEventListener('click', function(event) {
-    // 1. หาความชัน (slope) ณ ตำแหน่งปัจจุบันของยาน
-    const slope = derivativeFunction(player.x);
-
-    // 2. แปลงความชันเป็นเวกเตอร์ทิศทาง (Direction Vector)
-    // ความชัน m = dy/dx. เราสามารถใช้เวกเตอร์ <dx, dy> เป็น <1, m>
-    // แต่เพื่อให้ความเร็วคงที่ เราต้องทำให้เป็น Unit Vector
-    const angle = Math.atan(slope);
+// --- ฟังก์ชันสร้างสิ่งกีดขวาง ---
+function spawnObstacle() {
+    const minHeight = 40;
+    const maxHeight = canvas.height * 0.4;
+    const height = Math.random() * (maxHeight - minHeight) + minHeight;
+    const width = 40;
     
-    // จัดการทิศทางของยานที่เคลื่อนที่ไปข้างหน้า
-    let velocityX = Math.cos(angle);
-    let velocityY = Math.sin(angle);
+    // สุ่มว่าจะให้สิ่งกีดขวางอยู่บนพื้นหรือเพดาน
+    const onGround = Math.random() > 0.5;
 
-    // สร้างกระสุนใหม่
-    bullets.push(new Bullet(player.x, player.y, velocityX, velocityY));
+    obstacles.push({
+        x: canvas.width,
+        y: onGround ? canvas.height - height : 0,
+        width: width,
+        height: height,
+        color: '#ff4d4d'
+    });
+}
+
+// --- การจัดการฟิสิกส์และการเคลื่อนที่ของผู้เล่น ---
+function updatePlayer() {
+    // ใช้สูตรฟิสิกส์: v = u + at (ในที่นี้คือ velocityY += gravity)
+    player.velocityY += gravity;
+    player.y += player.velocityY;
+
+    // ตรวจสอบการชนขอบบนและล่าง (พื้นและเพดาน)
+    // ถ้าชนพื้น
+    if (player.y + player.height > canvas.height) {
+        player.y = canvas.height - player.height;
+        player.velocityY = 0;
+    }
+    // ถ้าชนเพดาน
+    if (player.y < 0) {
+        player.y = 0;
+        player.velocityY = 0;
+    }
+}
+
+// --- การจัดการสิ่งกีดขวาง ---
+function updateObstacles() {
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        obs.x -= gameSpeed;
+
+        // ถ้าสิ่งกีดขวางพ้นจอไปทางซ้าย
+        if (obs.x + obs.width < 0) {
+            obstacles.splice(i, 1); // ลบออกจาก Array
+            score++;
+            scoreElement.textContent = score;
+
+            // เพิ่มความเร็วเกมเล็กน้อยเพื่อความท้าทาย
+            gameSpeed += 0.1;
+        }
+    }
+
+    // สร้างสิ่งกีดขวางใหม่เมื่ออันล่าสุดเคลื่อนที่ไปได้ระยะหนึ่งแล้ว
+    if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 300) {
+        spawnObstacle();
+    }
+}
+
+// --- การตรวจจับการชนกับสิ่งกีดขวาง ---
+function checkCollision() {
+    for (const obs of obstacles) {
+        if (
+            player.x < obs.x + obs.width &&
+            player.x + player.width > obs.x &&
+            player.y < obs.y + obs.height &&
+            player.y + player.height > obs.y
+        ) {
+            isGameOver = true;
+        }
+    }
+}
+
+// --- ฟังก์ชันการวาดภาพทั้งหมดลงบน Canvas ---
+function draw() {
+    // เคลียร์ Canvas ให้เป็นสีพื้นหลัง
+    ctx.fillStyle = '#0f0f1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // วาดผู้เล่น
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+    // เพิ่มเงาให้ผู้เล่น
+    ctx.shadowColor = player.color;
+    ctx.shadowBlur = 10;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+    ctx.shadowBlur = 0;
+
+
+    // วาดสิ่งกีดขวาง
+    for (const obs of obstacles) {
+        ctx.fillStyle = obs.color;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        // เพิ่มเงาให้สิ่งกีดขวาง
+        ctx.shadowColor = obs.color;
+        ctx.shadowBlur = 15;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        ctx.shadowBlur = 0;
+    }
+}
+
+// --- ฟังก์ชัน Game Loop หลัก ---
+function gameLoop() {
+    if (isGameOver) {
+        // ถ้าเกมจบ, แสดงหน้าจอ Game Over
+        finalScoreElement.textContent = score;
+        gameOverScreen.classList.remove('hidden');
+        return;
+    }
+
+    // อัปเดตสถานะของเกม
+    updatePlayer();
+    updateObstacles();
+    checkCollision();
+
+    // วาดภาพใหม่
+    draw();
+
+    // เรียกตัวเองซ้ำใน Frame ถัดไปเพื่อสร้าง Animation
+    animationFrameId = requestAnimationFrame(gameLoop);
+}
+
+// --- การควบคุม: สลับแรงโน้มถ่วง ---
+function switchGravity() {
+    if (!isGameOver) {
+        gravity *= -1; // สลับขั้วแรงโน้มถ่วง
+    }
+}
+
+// Event Listeners
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        switchGravity();
+    }
 });
 
+canvas.addEventListener('mousedown', switchGravity);
+restartButton.addEventListener('click', setup);
 
-// === Game Loop (หัวใจหลักที่ทำให้เกมเคลื่อนไหว) ===
-function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // ล้างจอทุกเฟรม
-
-    // วาดเส้นทางของยาน (เพื่อความสวยงาม)
-    ctx.strokeStyle = 'rgba(106, 13, 173, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < canvas.width; i++) {
-        ctx.lineTo(i, pathFunction(i));
-    }
-    ctx.stroke();
-
-    // อัปเดตและวาดวัตถุต่างๆ
-    handleBullets();
-    handleEnemies();
-    handleCollisions();
-    
-    // อัปเดตตำแหน่งยาน
-    player.x += player.speed;
-    player.y = pathFunction(player.x);
-
-    // ทำให้ยานวนกลับมาเมื่อตกขอบ
-    if (player.x > canvas.width + player.radius) {
-        player.x = 0 - player.radius;
-    }
-
-    // วาดยาน
-    ctx.fillStyle = '#00ffff'; // สีฟ้านีออน
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#00ffff';
-    
-    gameFrame++;
-    requestAnimationFrame(animate); // เรียกใช้ animate() ในเฟรมถัดไป
-}
-
-// เริ่มเกม!
-animate();
+// --- เริ่มเกมครั้งแรก ---
+setup();
