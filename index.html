@@ -3,21 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gravity Runner</title>
+    <title>Quantum Solver</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
-        <h1>Gravity Runner</h1>
-        <canvas id="gameCanvas"></canvas>
-        <div id="scoreBoard">คะแนน: <span id="score">0</span></div>
+        <h1>Quantum Solver</h1>
+        <div id="ui-panel">
+            <div id="scoreBoard">คะแนน: <span id="score">0</span></div>
+            <div id="timer">
+                <div id="timer-bar"></div>
+            </div>
+        </div>
+        
+        <div id="problem-box">
+            <p id="problem-text">กำลังโหลดโจทย์...</p>
+            <p id="formula-hint"></p>
+            <input type="number" id="answer-input" placeholder="ใส่คำตอบที่นี่..." autocomplete="off">
+        </div>
+
         <div id="gameOverScreen" class="hidden">
-            <h2>GAME OVER</h2>
+            <h2>CONNECTION TERMINATED</h2>
             <p>คะแนนสุดท้าย: <span id="finalScore">0</span></p>
-            <button id="restartButton">เริ่มใหม่อีกครั้ง</button>
+            <p>คำตอบที่ถูกต้องคือ: <span id="correct-answer"></span></p>
+            <button id="restartButton">เชื่อมต่อใหม่อีกครั้ง</button>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
