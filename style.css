@@ -1,9 +1,9 @@
-/* ตั้งค่าพื้นฐานและฟอนต์ */
 body {
     margin: 0;
+    padding: 0;
+    background-color: #1a1a2e;
+    color: #e0e0e0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #0c0c1e; /* สีพื้นหลังอวกาศมืด */
-    color: #f0f0f0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -11,41 +11,73 @@ body {
     overflow: hidden;
 }
 
-/* คอนเทนเนอร์หลักของเกม */
 .game-container {
     text-align: center;
-    border: 2px solid #6a0dad; /* ขอบสีม่วงนีออน */
-    box-shadow: 0 0 20px #6a0dad, 0 0 30px #8a2be2 inset;
-    border-radius: 15px;
-    padding: 20px;
-    background-color: rgba(12, 12, 30, 0.8);
 }
 
 h1 {
-    color: #e0e0ff;
-    text-shadow: 0 0 10px #fff, 0 0 20px #6a0dad;
-    margin-top: 0;
+    font-size: 3em;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    margin-bottom: 20px;
 }
 
-/* Canvas ของเกม */
 canvas {
-    background-color: #000;
-    background-image: 
-        radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
-        radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
-        radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px),
-        radial-gradient(rgba(255,255,255,.4), rgba(255,255,255,.1) 2px, transparent 30px);
-    background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px; 
-    background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
-    border: 1px solid #4a0a8d;
+    background-color: #0f0f1a;
+    border: 3px solid #00ffff;
+    box-shadow: 0 0 20px #00ffff, inset 0 0 15px rgba(0, 255, 255, 0.3);
     border-radius: 10px;
-    cursor: crosshair; /* เปลี่ยนเมาส์เป็นเป้าเล็ง */
 }
 
-/* ส่วนแสดงผลคะแนน */
-#ui-container {
-    margin-top: 15px;
+#scoreBoard {
     font-size: 1.5em;
-    color: #c0c0ff;
-    text-shadow: 0 0 5px #6a0dad;
+    margin-top: 15px;
+    color: #f7b801;
+}
+
+#gameOverScreen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(15, 15, 26, 0.9);
+    padding: 40px;
+    border-radius: 15px;
+    border: 2px solid #ff4d4d;
+    box-shadow: 0 0 25px #ff4d4d;
+    text-align: center;
+}
+
+#gameOverScreen h2 {
+    color: #ff4d4d;
+    font-size: 3em;
+    margin: 0 0 20px 0;
+}
+
+#gameOverScreen p {
+    font-size: 1.5em;
+    margin-bottom: 30px;
+}
+
+#restartButton {
+    background-color: #00ffff;
+    color: #1a1a2e;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px #00ffff;
+}
+
+#restartButton:hover {
+    background-color: #1a1a2e;
+    color: #00ffff;
+    border: 2px solid #00ffff;
+}
+
+.hidden {
+    display: none;
 }
